@@ -15,6 +15,6 @@
 
     python train.py
 
-## Detail
+## Details
 
 见 ‘train.py’
