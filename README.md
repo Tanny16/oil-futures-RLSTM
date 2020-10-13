@@ -14,3 +14,7 @@
 ## Run
 
     python train.py
+
+## Detail
+
+见 ‘train.py’
