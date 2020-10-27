@@ -13,7 +13,7 @@
 
 ## Run
 
-    $ ython train_LSTM.py
+    $ python train_LSTM.py
     $ python train_RLSTM.py
 
 ## Details
