@@ -126,8 +126,8 @@ class OriginalData:
         self.oil_data_path = oil_data_path
         self.chinese_news_path = chinese_news_path
         self.out_chinese_news_emotion_path = out_chinese_news_emotion_path
-
         self.days_iter = 5
+        self.train_type = "classification"
 
     def make_news_emotion(self, emotion_analysis):
         """
@@ -186,7 +186,11 @@ class OriginalData:
                 data_dict["emotion"].append(emotion_dict[date])
             else:
                 data_dict["emotion"].append([0.0, 0.0, 0.0])
-        return self.min_max_data_dict(data_dict)
+
+        if self.train_type == "classification":
+            return self.min_max_data_dict(data_dict)
+        else:
+            return self.min_max_data_dict_regress(data_dict)
 
     def transform_zh_with_en_label(self):
         """
@@ -227,7 +231,10 @@ class OriginalData:
                 zh_data_dict["emotion"].append(emotion_dict[date])
             else:
                 zh_data_dict["emotion"].append([0.0, 0.0, 0.0])
-        return self.min_max_data_dict(zh_data_dict)
+        if self.train_type == "classification":
+            return self.min_max_data_dict(zh_data_dict)
+        else:
+            return self.min_max_data_dict_regress(zh_data_dict)
 
     def min_max_data_dict(self, data_dict):
         """
@@ -254,6 +261,28 @@ class OriginalData:
             data_list_with_label.append([base_temp, emotion_temp, label])
         return data_list_with_label
 
+    def min_max_data_dict_regress(self, data_dict):
+        """
+        Data normalization
+        """
+        min_max_scaler = MinMaxScaler()
+        X_train_minmax = min_max_scaler.fit_transform(data_dict["base"])
+        data_dict.update({"base": X_train_minmax})
+
+        data_list = [[a, b] for a, b in zip(data_dict["base"], data_dict["emotion"])]
+        data_list_with_label = []
+        for i in range(len(data_list) - (self.days_iter + 1)):
+            base_temp = []
+            emotion_temp = []
+            for j in range(self.days_iter):
+                base_temp.append(torch.Tensor([data_list[i + j][0]]))
+                emotion_temp.append(torch.Tensor([data_list[i + j][1]]))
+            open, high, low, close, *_ = data_list[i + j][0]
+            next_open, next_high, next_low, next_close, *_ = data_list[i + j + 1][0]
+            label = torch.from_numpy(np.array([next_close])).float()
+            data_list_with_label.append([base_temp, emotion_temp, label])
+        return data_list_with_label
+
     def load_emotion_data(self):
         """
         Calculate daily emotional features
@@ -274,6 +303,7 @@ class OriginalData:
             else:
                 emotion_dict.update({key: [sum(x) / len(x) for x in list(zip(*val))]})
         return emotion_dict
+
 
 if __name__ == "__main__":
     ea = EmotionAnalysis(positive_words_path="data/positive.txt",
