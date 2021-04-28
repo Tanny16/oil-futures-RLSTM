@@ -4,7 +4,7 @@ from torch.autograd import Variable
 
 
 class LSTM(nn.Module):
-    def __init__(self, input_size, output_size, classification=False):
+    def __init__(self, input_size, output_size, num_classes=2, classification=False):
         super(LSTM, self).__init__()
         self.hidden_size = output_size
         self.cell_size = output_size
@@ -13,7 +13,7 @@ class LSTM(nn.Module):
         self.gate = nn.Linear(input_size + output_size, output_size)
         self.classification = classification
         if self.classification:
-            self.output_dense = nn.Linear(output_size, 2)
+            self.output_dense = nn.Linear(output_size, num_classes)
 
     def forward(self, input, h_t, c_t):
         combined = torch.cat((input, h_t), 1)
@@ -40,7 +40,7 @@ class LSTM(nn.Module):
 
 
 class RLSTM(nn.Module):
-    def __init__(self, input_size, output_size, media_size, classification=False):
+    def __init__(self, input_size, output_size, media_size, num_classes=2, classification=False):
         super(RLSTM, self).__init__()
         self.hidden_size = output_size
         self.cell_size = output_size
@@ -50,7 +50,7 @@ class RLSTM(nn.Module):
         self.input_gate = nn.Linear(input_size + output_size, output_size)
         self.classification = classification
         if self.classification:
-            self.output_dense = nn.Linear(output_size, 2)
+            self.output_dense = nn.Linear(output_size, num_classes)
 
     def forward(self, input, media, h_t, c_t):
         combined = torch.cat((input, h_t), 1)
