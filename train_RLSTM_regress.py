@@ -3,30 +3,30 @@
 """
 1.中国基本面:
     Hyper parameter:
-        num_epochs: 132
+        num_epochs: 100
         lr_init: 0.001
         random_seed: 273
     Result:
-        val accuracy_score: 0.631578947368421
-        val auc: 0.6426799007444168
+        val mse: 0.0006716219789348816
+        test mse: 0.0006014344664942903
 
 2.美国基本面:
     Hyper parameter:
-        num_epochs: 150
-        lr_init: 0.01
-        random_seed: 274
-    Result:
-        val accuracy_score: 0.5281385281385281
-        val auc: 0.5306359682015899
-
-3.中国基本面 + 美国涨跌:
-    Hyper parameter:
-        num_epochs: 150
+        num_epochs: 100
         lr_init: 0.001
         random_seed: 273
     Result:
-        val accuracy_score: 0.6666666666666666
-        val auc: 0.6687344913151365
+        val mse: 0.0001891613474229831
+        test mse: 0.0001971232997772325
+
+3.中国基本面 + 美国涨跌:
+    Hyper parameter:
+        num_epochs: 100
+        lr_init: 0.001
+        random_seed: 273
+    Result:
+        val mse: 0.0006727270719396752
+        test mse: 0.0006183386526099977
 """
 
 import os
@@ -44,7 +44,7 @@ from preprocessing import EmotionAnalysis, OriginalData
 
 # -----------------------Training parameters-----------------------
 
-num_epochs = 150
+num_epochs = 100
 GPU_id = "cuda:2"   # Specifies the graphics card
 device = torch.device(GPU_id if torch.cuda.is_available() else "cpu")
 lr_init = 0.001      # Initial learning rate
@@ -129,7 +129,7 @@ for epoch in range(num_epochs):
             m = m.to(device)
             out, hidden, cell = model(i, m, hidden, cell)
         loss = criterion(out, label)
-        _, out_binary= torch.max(out, 1)
+        _, out_binary = torch.max(out, 1)
         preds_train.append(out_binary.cpu().tolist()[0])
         loss.backward()
         optimizer.step()
@@ -146,17 +146,19 @@ for epoch in range(num_epochs):
 # -----------------------val-----------------------
 
 inputs_val, medias_val, labels_val = list(zip(*val))
-labels_val = [x.tolist()[0] for x in labels_val]
 preds_val = []
 
 model.eval()
-
-for input_val, media_val in zip(inputs_val, medias_val):
+total_loss_val = 0.0
+iteration_val = 0
+for input_val, media_val, label_val in zip(inputs_val, medias_val, labels_val):
+    iteration_val += 1
     optimizer.zero_grad()
     with torch.set_grad_enabled(False):
         hidden = model.init_hidden()
         cell = model.init_cell()
         hidden = hidden.to(device)
+        label_val = label_val.to(device)
         cell = cell.to(device)
         out = None
         for i, m in zip(input_val, media_val):
@@ -165,24 +167,28 @@ for input_val, media_val in zip(inputs_val, medias_val):
             out, hidden, cell = model(i, m, hidden, cell)
         _, out_val = torch.max(out, 1)
         preds_val.append(out_val.cpu().tolist()[0])
+        loss = criterion(out, label_val)
+        total_loss_val += loss.item()
 
 print("-------------------------------")
-print("val auc: {}".format(roc_auc_score(labels_val, preds_val)))
+print("val mse: {}".format(total_loss_val / iteration_val))
 
 # -----------------------test-----------------------
 
 inputs_test, medias_test, labels_test = list(zip(*test))
-labels_test = [x.tolist()[0] for x in labels_test]
 preds_test = []
 
 model.eval()
-
-for input_test, media_test in zip(inputs_test, medias_test):
+total_loss_test = 0.0
+iteration_test = 0
+for input_test, media_test, label_test in zip(inputs_test, medias_test, labels_test):
+    iteration_test += 1
     optimizer.zero_grad()
     with torch.set_grad_enabled(False):
         hidden = model.init_hidden()
         cell = model.init_cell()
         hidden = hidden.to(device)
+        label_test = label_test.to(device)
         cell = cell.to(device)
         out = None
         for i, m in zip(input_test, media_test):
@@ -191,6 +197,8 @@ for input_test, media_test in zip(inputs_test, medias_test):
             out, hidden, cell = model(i, m, hidden, cell)
         _, out_val = torch.max(out, 1)
         preds_val.append(out_val.cpu().tolist()[0])
+        loss = criterion(out, label_test)
+        total_loss_test += loss.item()
 
 print("-------------------------------")
-print("test auc: {}".format(roc_auc_score(labels_test, preds_test)))
+print("test mse: {}".format(total_loss_test / iteration_test))
