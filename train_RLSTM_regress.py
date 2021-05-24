@@ -11,6 +11,8 @@
         test mse: 0.0006014344664942903
         val rmse: 0.019051883873460133
         test rmse: 0.018183241058074708
+        val mape: nan
+        test mape: nan
 
 2.美国基本面:
     Hyper parameter:
@@ -22,6 +24,8 @@
         test mse: 0.0001971232997772325
         val rmse: nan
         test rmse: nan
+        val mape: nan
+        test mape: nan
 
 3.中国基本面 + 美国涨跌:
     Hyper parameter:
@@ -33,6 +37,8 @@
         test mse: 0.0006183386526099977
         val rmse: 0.019287089754253944
         test rmse: 0.018546660851647422
+        val mape: nan
+        test mape: nan
 """
 
 import os
