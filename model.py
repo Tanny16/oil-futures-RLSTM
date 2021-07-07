@@ -39,6 +39,37 @@ class LSTM(nn.Module):
         return Variable(torch.zeros(1, self.cell_size))
 
 
+class GRU(nn.Module):
+    def __init__(self, input_size, output_size, num_classes=2, classification=False):
+        super(GRU, self).__init__()
+        self.hidden_size = output_size
+        self.cell_size = output_size
+        self.tanh = nn.Tanh()
+        self.sigmoid = nn.Sigmoid()
+        self.gate = nn.Linear(input_size + output_size, output_size)
+        self.classification = classification
+        if self.classification:
+            self.output_dense = nn.Linear(output_size, num_classes)
+
+    def forward(self, input, h_t):
+        combined = torch.cat((input, h_t), 1)
+
+        z = self.sigmoid(self.gate(combined))
+        r = self.sigmoid(self.gate(combined))
+        h_m = self.tanh(self.gate_x(torch.cat((input, torch.mul(r, h_t)), 1)))
+        h = torch.add(torch.mul(z, h_m), torch.mul(1 - z, h_t))
+
+        if self.classification:
+            output = self.output_dense(h)
+        else:
+            output = h
+
+        return output, h
+
+    def init_hidden(self):
+        return Variable(torch.zeros(1, self.hidden_size))
+
+
 class RLSTM(nn.Module):
     def __init__(self, input_size, output_size, media_size, num_classes=2, classification=False):
         super(RLSTM, self).__init__()
@@ -77,3 +108,39 @@ class RLSTM(nn.Module):
 
     def init_cell(self):
         return Variable(torch.zeros(1, self.cell_size))
+
+
+class RGRU(nn.Module):
+    def __init__(self, input_size, output_size, media_size, num_classes=2, classification=False):
+        super(RGRU, self).__init__()
+        self.hidden_size = output_size
+        self.cell_size = output_size
+        self.tanh = nn.Tanh()
+        self.sigmoid = nn.Sigmoid()
+        self.media_gate = nn.Linear(media_size, output_size)
+        self.input_gate = nn.Linear(input_size + output_size, output_size)
+        self.classification = classification
+        if self.classification:
+            self.output_dense = nn.Linear(output_size, num_classes)
+
+    def forward(self, input, media, h_t):
+        combined = torch.cat((input, h_t), 1)
+
+        z = self.sigmoid(self.gate(combined))
+        r = self.sigmoid(self.gate(combined))
+        h_m = self.tanh(self.gate_x(torch.cat((input, torch.mul(r, h_t)), 1)))
+
+        h_m_r = self.tanh(h_m)
+        h_m_f = torch.add(h_m, torch.add(-h_m_r, torch.mul(h_m_r, self.sigmoid(self.media_gate(media)))))
+
+        h = torch.add(torch.mul(z, h_m_f), torch.mul(1 - z, h_t))
+
+        if self.classification:
+            output = self.output_dense(h)
+        else:
+            output = h
+
+        return output, h
+
+    def init_hidden(self):
+        return Variable(torch.zeros(1, self.hidden_size))
